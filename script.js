@@ -1,151 +1,119 @@
 document.addEventListener('DOMContentLoaded', () => {
-    populateCountrySelect();
-});
+    const searchInput = document.getElementById('search-input');
+    const searchButton = document.getElementById('search-button');
+    const backButton = document.getElementById('back-button');
+    const resultsContainer = document.querySelector('.results');
+    const extraInfoContainer = document.querySelector('.extra-info');
+    const filterSelect = document.getElementById('filter');
+    const sortSelect = document.getElementById('sort');
 
-document.getElementById('search-button').addEventListener('click', () => {
-    const query = document.getElementById('search-input').value.trim();
-    if (query) {
-        fetchCountries(query);
-        document.getElementById('back-button').style.display = 'block';
-        document.getElementById('country-select').style.display = 'none';
-        document.getElementById('autocomplete-results').style.display = 'none';
-    }
-});
+    let countries = [];
+    let filteredCountries = [];
+    let currentCountryElement = null;
 
-document.getElementById('search-input').addEventListener('input', () => {
-    const query = document.getElementById('search-input').value.trim();
-    if (query) {
-        showAutocomplete(query);
-    } else {
-        document.getElementById('autocomplete-results').innerHTML = '';
-        document.getElementById('back-button').style.display = 'none';
-        document.getElementById('country-select').style.display = 'block';
-    }
-});
+    const fetchCountries = async () => {
+        const response = await fetch('https://restcountries.com/v3.1/all');
+        countries = await response.json();
+        filteredCountries = countries;
+        renderCountries(filteredCountries);
+    };
 
-document.getElementById('country-select').addEventListener('change', () => {
-    const selectedCountry = document.getElementById('country-select').value;
-    if (selectedCountry) {
-        fetchCountries(selectedCountry);
-        document.getElementById('back-button').style.display = 'block';
-        document.getElementById('country-select').style.display = 'none';
-        document.getElementById('autocomplete-results').style.display = 'none';
-    }
-});
+    const renderCountries = (countries) => {
+        resultsContainer.innerHTML = '';
+        countries.forEach(country => {
+            const countryDiv = document.createElement('div');
+            countryDiv.className = 'result-item';
+            countryDiv.innerHTML = `
+                <img src="${country.flags.svg}" alt="${country.name.common}">
+                <div>
+                    <strong>${country.name.common}</strong>
+                </div>
+            `;
+            countryDiv.addEventListener('click', () => showCountryDetails(country, countryDiv));
+            resultsContainer.appendChild(countryDiv);
+        });
+    };
 
-document.getElementById('back-button').addEventListener('click', () => {
-    document.getElementById('search-input').value = '';
-    document.getElementById('results').innerHTML = '';
-    document.getElementById('autocomplete-results').innerHTML = '';
-    document.getElementById('back-button').style.display = 'none';
-    document.getElementById('country-select').style.display = 'block';
-});
+    const showCountryDetails = (country, countryElement) => {
+        if (extraInfoContainer.parentElement === countryElement) {
+            extraInfoContainer.classList.toggle('hidden');
+            return;
+        }
 
-document.addEventListener('click', (event) => {
-    if (!event.target.closest('.search-container')) {
-        document.getElementById('autocomplete-results').innerHTML = '';
-    }
-});
+        if (extraInfoContainer.parentElement) {
+            extraInfoContainer.parentElement.removeChild(extraInfoContainer);
+        }
 
-async function fetchCountries(query) {
-    const endpoint = `https://restcountries.com/v3.1/name/${encodeURIComponent(query)}`;
-    const response = await fetch(endpoint);
+        extraInfoContainer.innerHTML = `
+            <h2>${country.name.common}</h2>
+            <p class="info-title">Capital:</p> <p>${country.capital ? country.capital.join(', ') : 'N/A'}</p>
+            <p class="info-title">Region:</p> <p>${country.region}</p>
+            <p class="info-title">Subregion:</p> <p>${country.subregion}</p>
+            <p class="info-title">Population:</p> <p>${country.population.toLocaleString()}</p>
+            <p class="info-title">Area:</p> <p>${country.area.toLocaleString()} km²</p>
+            <p class="info-title">Languages:</p> <p>${Object.values(country.languages).join(', ')}</p>
+            <p class="info-title">Currencies:</p> <p>${Object.values(country.currencies).map(curr => curr.name).join(', ')}</p>
+               <div class="info-divider"></div> <!-- Pembatas ditambahkan di sini -->
+        `;
+        
+        extraInfoContainer.classList.remove('hidden');
+        countryElement.appendChild(extraInfoContainer);
+        currentCountryElement = countryElement;
+        backButton.classList.remove('hidden');
+        resultsContainer.classList.add('hidden');
+    };
 
-    if (response.ok) {
-        const data = await response.json();
-        displayResults(data);
-    } else {
-        console.error('Error fetching data:', response.statusText);
-    }
-}
+    const handleSearch = () => {
+        const query = searchInput.value.toLowerCase();
+        if (query) {
+            filteredCountries = countries.filter(country => country.name.common.toLowerCase().startsWith(query));
+            renderCountries(filteredCountries);
+        } else {
+            filteredCountries = countries;
+            renderCountries(filteredCountries);
+        }
+    };
 
-function displayResults(countries) {
-    const resultsDiv = document.getElementById('results');
-    resultsDiv.innerHTML = '';
+    const handleFilter = () => {
+        const region = filterSelect.value;
+        if (region === 'all') {
+            filteredCountries = countries;
+        } else {
+            filteredCountries = countries.filter(country => country.region.toLowerCase() === region.toLowerCase());
+        }
+        renderCountries(filteredCountries);
+    };
 
-    countries.forEach(country => {
-        const div = document.createElement('div');
-        div.className = 'result-item';
-        div.dataset.country = JSON.stringify(country);
-
-        const img = country.flags.svg ? `<img src="${country.flags.svg}" alt="${country.name.common} flag">` : '';
-        div.innerHTML = img;
-
-        div.addEventListener('click', () => {
-            const detailDiv = div.querySelector('.detail-item');
-            if (detailDiv) {
-                detailDiv.classList.toggle('show');
-            } else {
-                const newDetailDiv = document.createElement('div');
-                newDetailDiv.className = 'detail-item show';
-
-                const borders = country.borders ? country.borders.join(', ') : 'None';
-                newDetailDiv.innerHTML = `
-                    <h2>${country.name.common}</h2>
-                    <p><span class="info-title">Capital:</span> ${country.capital ? country.capital.join(', ') : 'N/A'}</p>
-                    <p><span class="info-title">Region:</span> ${country.region}</p>
-                    <p><span class="info-title">Subregion:</span> ${country.subregion}</p>
-                    <p><span class="info-title">Languages:</span> ${Object.values(country.languages).join(', ')}</p>
-                    <p><span class="info-title">Currencies:</span> ${Object.values(country.currencies).map(c => c.name).join(', ')}</p>
-                    <p><span class="info-title">Coordinates:</span> Latitude ${country.latlng ? country.latlng[0] : 'N/A'}, Longitude ${country.latlng ? country.latlng[1] : 'N/A'}</p>
-                    <p><span class="info-title">Borders:</span> ${borders}</p>
-                    <p><span class="info-title">Demonym:</span> ${country.demonyms ? Object.values(country.demonyms).join(', ') : 'N/A'}</p>
-                    <p><span class="info-title">Top Level Domain:</span> ${country.tld ? country.tld.join(', ') : 'N/A'}</p>
-                `;
-
-                div.appendChild(newDetailDiv);
+    const handleSort = () => {
+        const sortBy = sortSelect.value;
+        filteredCountries.sort((a, b) => {
+            if (sortBy === 'name') {
+                return a.name.common.localeCompare(b.name.common);
+            } else if (sortBy === 'population') {
+                return b.population - a.population;
+            } else if (sortBy === 'area') {
+                return b.area - a.area;
             }
         });
+        renderCountries(filteredCountries);
+    };
 
-        resultsDiv.appendChild(div);
+    searchButton.addEventListener('click', handleSearch);
+    searchInput.addEventListener('input', handleSearch);
+    filterSelect.addEventListener('change', handleFilter);
+    sortSelect.addEventListener('change', handleSort);
+    backButton.addEventListener('click', () => {
+        extraInfoContainer.classList.add('hidden');
+        if (currentCountryElement) {
+            currentCountryElement.removeChild(extraInfoContainer);
+            currentCountryElement = null;
+        }
+        resultsContainer.classList.remove('hidden');
+        backButton.classList.add('hidden');
+        searchInput.value = '';
+        filteredCountries = countries;
+        renderCountries(filteredCountries);
     });
-}
 
-async function populateCountrySelect() {
-    const endpoint = 'https://restcountries.com/v3.1/all';
-    const response = await fetch(endpoint);
-
-    if (response.ok) {
-        const data = await response.json();
-        const select = document.getElementById('country-select');
-        
-        // Sort countries alphabetically by name
-        data.sort((a, b) => a.name.common.localeCompare(b.name.common));
-        
-        data.forEach(country => {
-            const option = document.createElement('option');
-            option.value = country.name.common;
-            option.textContent = country.name.common;
-            select.appendChild(option);
-        });
-    } else {
-        console.error('Error fetching country list:', response.statusText);
-    }
-}
-
-async function showAutocomplete(query) {
-    const endpoint = 'https://restcountries.com/v3.1/all';
-    const response = await fetch(endpoint);
-
-    if (response.ok) {
-        const data = await response.json();
-        const results = data.filter(country => country.name.common.toLowerCase().startsWith(query.toLowerCase()));
-        const autocompleteDiv = document.getElementById('autocomplete-results');
-        autocompleteDiv.innerHTML = '';
-
-        results.forEach(country => {
-            const div = document.createElement('div');
-            div.className = 'autocomplete-item';
-            div.textContent = country.name.common;
-            div.addEventListener('click', () => {
-                document.getElementById('search-input').value = country.name.common;
-                fetchCountries(country.name.common);
-                document.getElementById('autocomplete-results').innerHTML = '';
-            });
-
-            autocompleteDiv.appendChild(div);
-        });
-    } else {
-        console.error('Error fetching autocomplete data:', response.statusText);
-    }
-}
+    fetchCountries();
+});

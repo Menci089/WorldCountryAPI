@@ -3,26 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Country Explorer</title>
+    <title>Country Search</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>Country Explorer</h1>
-        </header>
+        <h1>Country Search</h1>
         <div class="search-container">
-            <div class="search-box">
-                <input type="text" id="search-input" placeholder="Search for a country">
-                <button id="search-button">Search</button>
-                <select id="country-select">
-                    <option value="">Select a country</option>
-                </select>
-                <button id="back-button">Back</button>
-            </div>
+            <input type="text" id="search-input" placeholder="Search countries...">
+            <button id="search-button">Search</button>
+            <button id="back-button" class="hidden">Back</button>
         </div>
-        <div id="autocomplete-results"></div>
-        <div id="results"></div>
+        <div class="options-container">
+            <label for="filter">Filter by Region:</label>
+            <select id="filter">
+                <option value="all">All</option>
+                <option value="asia">Asia</option>
+                <option value="europe">Europe</option>
+                <option value="americas">Americas</option>
+                <option value="africa">Africa</option>
+                <option value="oceania">Oceania</option>
+            </select>
+            <label for="sort">Sort by:</label>
+            <select id="sort">
+                <option value="name">Name</option>
+                <option value="population">Population</option>
+                <option value="area">Area</option>
+            </select>
+        </div>
+        <div class="country-list">
+            <h2>Countries</h2>
+            <div class="results"></div>
+        </div>
+        <div class="extra-info hidden"></div>
     </div>
     <script src="script.js"></script>
 </body>
